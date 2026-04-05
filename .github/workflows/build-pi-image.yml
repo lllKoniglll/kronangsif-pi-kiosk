@@ -1,0 +1,65 @@
+name: Build Raspberry Pi Image
+
+on:
+  workflow_dispatch:
+    inputs:
+      kiosk_url:
+        description: Fullscreen URL to open on boot
+        required: true
+        default: https://kronangsif.github.io
+      release:
+        description: Raspberry Pi OS release
+        required: true
+        default: trixie
+
+jobs:
+  build-image:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Write local build secrets
+        shell: bash
+        env:
+          PI_FIRST_USER_NAME: ${{ secrets.PI_FIRST_USER_NAME }}
+          PI_FIRST_USER_PASS: ${{ secrets.PI_FIRST_USER_PASS }}
+          PI_HOSTNAME: ${{ secrets.PI_HOSTNAME }}
+          WIFI_SSID: ${{ secrets.WIFI_SSID }}
+          WIFI_PASSWORD: ${{ secrets.WIFI_PASSWORD }}
+          WIFI_COUNTRY: ${{ secrets.WIFI_COUNTRY }}
+        run: |
+          set -euo pipefail
+          : "${PI_FIRST_USER_PASS:?Set repository secret PI_FIRST_USER_PASS}"
+          : "${WIFI_SSID:?Set repository secret WIFI_SSID}"
+          : "${WIFI_PASSWORD:?Set repository secret WIFI_PASSWORD}"
+
+          cat > config/image-secrets.env <<EOF
+          FIRST_USER_NAME="${PI_FIRST_USER_NAME:-kiosk}"
+          FIRST_USER_PASS="${PI_FIRST_USER_PASS}"
+          TARGET_HOSTNAME="${PI_HOSTNAME:-kronangsif-pi}"
+          ENABLE_SSH="1"
+          RELEASE="${{ inputs.release }}"
+          EOF
+
+          cat > config/wifi.env <<EOF
+          WIFI_SSID="${WIFI_SSID}"
+          WIFI_PASSWORD="${WIFI_PASSWORD}"
+          WIFI_COUNTRY="${WIFI_COUNTRY:-SE}"
+          EOF
+
+      - name: Build image
+        shell: bash
+        env:
+          KIOSK_URL: ${{ inputs.kiosk_url }}
+        run: |
+          set -euo pipefail
+          ./scripts/build-pi-image.sh --build-mode docker --refresh-pigen --kiosk-url "$KIOSK_URL"
+
+      - name: Upload image artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: kronangsif-pi-image
+          path: .build/pi-gen/deploy/*
+          if-no-files-found: error

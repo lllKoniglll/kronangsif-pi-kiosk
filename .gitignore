@@ -1,4 +1,6 @@
 .DS_Store
 *.swp
 *.swo
+.build/
 config/wifi.env
+config/image-secrets.env

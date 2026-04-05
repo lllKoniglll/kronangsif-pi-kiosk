@@ -8,6 +8,7 @@ The repository is built around Raspberry Pi OS desktop mode on current Raspberry
 - `labwc` autostart
 - Chromium kiosk mode
 - NetworkManager Wi-Fi preconfiguration
+- an official `pi-gen` image build path
 - a small launcher loop so the browser restarts if it exits
 
 ## What this repo does
@@ -17,6 +18,7 @@ The repository is built around Raspberry Pi OS desktop mode on current Raspberry
 - points the browser at `https://kronangsif.github.io` by default
 - supports a preconfigured Wi-Fi network for autoconnect on boot
 - keeps the kiosk browser coming back after crashes or manual exits
+- can build a flashable Raspberry Pi OS image with those settings baked in
 
 ## 16GB card target
 
@@ -50,6 +52,32 @@ sudo reboot
 
 After reboot, Chromium should launch automatically in fullscreen and open the target site.
 
+## Build a flashable image
+
+This repo can also build a Raspberry Pi OS image with the kiosk and Wi-Fi baked in using official `pi-gen`.
+
+1. Create the local secret files:
+
+```bash
+cp config/image-secrets.env.example config/image-secrets.env
+cp config/wifi.env.example config/wifi.env
+```
+
+2. Set the first-user password and Wi-Fi credentials in those files.
+3. Build the image:
+
+```bash
+./scripts/build-pi-image.sh --build-mode docker --refresh-pigen
+```
+
+Artifacts are written to:
+
+```text
+.build/pi-gen/deploy/
+```
+
+For the full flow, see `docs/pi-gen-image-build.md`.
+
 ## Wi-Fi
 
 For Raspberry Pi OS Bookworm and newer, Raspberry Pi officially recommends setting first-boot Wi-Fi in Raspberry Pi Imager.
@@ -80,10 +108,13 @@ sudo reboot
 - `scripts/install-kiosk.sh`: installs the kiosk dependencies and writes user config
 - `config/kiosk-browser.sh`: browser launcher used by autostart
 - `config/kiosk-wifi.nmconnection.template`: NetworkManager template for Wi-Fi autoconnect
+- `config/image-secrets.env.example`: local secret template for the baked-in image user
 - `config/wifi.env.example`: local secret template for Wi-Fi credentials
 - `config/labwc-autostart`: autostart file for Raspberry Pi OS desktop mode
 - `docs/raspberry-pi-imager.md`: recommended imaging flow
+- `docs/pi-gen-image-build.md`: official `pi-gen` image build flow
 - `docs/wifi-preconfiguration.md`: Wi-Fi setup details
+- `pigen/stage-kronangsif/`: custom `pi-gen` stage for the kiosk image
 
 ## Notes
 
@@ -91,6 +122,7 @@ sudo reboot
 - This repo targets a 16GB card, so the desktop image is the right starting point.
 - The install script uses `raspi-config` non-interactive commands for desktop autologin and hostname setup.
 - Wi-Fi credentials should stay in `config/wifi.env`, which is intentionally ignored by Git.
+- Image-user credentials should stay in `config/image-secrets.env`, which is intentionally ignored by Git.
 - If you want a more durable public kiosk, consider enabling the Raspberry Pi overlay filesystem after setup and testing.
 
 ## References
