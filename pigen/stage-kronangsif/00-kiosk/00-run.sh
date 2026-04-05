@@ -2,7 +2,6 @@
 set -euo pipefail
 
 SUB_STAGE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-REPO_ROOT="$(cd "$SUB_STAGE_DIR/../../.." && pwd)"
 FIRST_USER_HOME="$ROOTFS_DIR/home/$FIRST_USER_NAME"
 WIFI_PROFILE_PATH="$ROOTFS_DIR/etc/NetworkManager/system-connections/kronangsif-kiosk-wifi.nmconnection"
 
@@ -14,11 +13,11 @@ install -d -m 755 \
   "$ROOTFS_DIR/etc/NetworkManager/system-connections"
 
 install -m 755 \
-  "$REPO_ROOT/config/kiosk-browser.sh" \
+  "$SUB_STAGE_DIR/files/kiosk-browser.sh" \
   "$FIRST_USER_HOME/.local/bin/kiosk-browser.sh"
 
 install -m 644 \
-  "$REPO_ROOT/config/labwc-autostart" \
+  "$SUB_STAGE_DIR/files/labwc-autostart" \
   "$FIRST_USER_HOME/.config/labwc/autostart"
 
 cat >"$FIRST_USER_HOME/.config/kiosk.env" <<EOF

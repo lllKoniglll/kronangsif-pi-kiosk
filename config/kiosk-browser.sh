@@ -29,6 +29,7 @@ while true; do
     --noerrdialogs \
     --disable-infobars \
     --no-first-run \
+    --password-store=basic \
     --enable-features=OverlayScrollbar \
     --start-maximized \
     --overscroll-history-navigation=0

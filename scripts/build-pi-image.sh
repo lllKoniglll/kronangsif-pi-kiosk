@@ -9,9 +9,11 @@ PIGEN_DIR="${PIGEN_DIR:-$BUILD_ROOT/pi-gen}"
 PIGEN_REPO="${PIGEN_REPO:-https://github.com/RPi-Distro/pi-gen.git}"
 PIGEN_BRANCH="${PIGEN_BRANCH:-arm64}"
 CONFIG_OUT="${CONFIG_OUT:-$BUILD_ROOT/pigen-kronangsif.config}"
+PIGEN_CONFIG_NAME="${PIGEN_CONFIG_NAME:-kronangsif.config}"
 IMAGE_SECRETS_FILE="${IMAGE_SECRETS_FILE:-$REPO_ROOT/config/image-secrets.env}"
 WIFI_CONFIG_FILE="${WIFI_CONFIG_FILE:-$REPO_ROOT/config/wifi.env}"
 CUSTOM_STAGE_DIR="$REPO_ROOT/pigen/stage-kronangsif"
+CUSTOM_STAGE_NAME="stage-kronangsif"
 
 BUILD_MODE="docker"
 PREPARE_ONLY=0
@@ -71,10 +73,22 @@ clone_or_refresh_pigen() {
 }
 
 prepare_pigen_tree() {
+  rm -rf "$PIGEN_DIR/$CUSTOM_STAGE_NAME"
+  cp -a "$CUSTOM_STAGE_DIR" "$PIGEN_DIR/$CUSTOM_STAGE_NAME"
+
+  install -d "$PIGEN_DIR/$CUSTOM_STAGE_NAME/00-kiosk/files"
+  install -m 755 \
+    "$REPO_ROOT/config/kiosk-browser.sh" \
+    "$PIGEN_DIR/$CUSTOM_STAGE_NAME/00-kiosk/files/kiosk-browser.sh"
+  install -m 644 \
+    "$REPO_ROOT/config/labwc-autostart" \
+    "$PIGEN_DIR/$CUSTOM_STAGE_NAME/00-kiosk/files/labwc-autostart"
+
   rm -f "$PIGEN_DIR"/stage{0,1,2,3,4,5}/SKIP
   touch "$PIGEN_DIR/stage2/SKIP_IMAGES"
   touch "$PIGEN_DIR/stage4/SKIP_IMAGES"
   touch "$PIGEN_DIR/stage5/SKIP_IMAGES"
+  cp "$CONFIG_OUT" "$PIGEN_DIR/$PIGEN_CONFIG_NAME"
 }
 
 render_config() {
@@ -98,7 +112,7 @@ render_config() {
   write_config_line ENABLE_SSH "${ENABLE_SSH:-1}"
   write_config_line ENABLE_CLOUD_INIT "${ENABLE_CLOUD_INIT:-0}"
   write_config_line WPA_COUNTRY "${WPA_COUNTRY:-${WIFI_COUNTRY:-SE}}"
-  write_config_line STAGE_LIST "stage0 stage1 stage2 stage3 stage4 ${CUSTOM_STAGE_DIR}"
+  write_config_line STAGE_LIST "stage0 stage1 stage2 stage3 stage4 ${CUSTOM_STAGE_NAME}"
   write_export_line KRONANGSIF_KIOSK_URL "${KIOSK_URL:-https://kronangsif.github.io}"
   write_export_line KRONANGSIF_WIFI_SSID "${WIFI_SSID}"
   write_export_line KRONANGSIF_WIFI_PASSWORD "${WIFI_PASSWORD}"
@@ -197,7 +211,7 @@ case "$BUILD_MODE" in
   docker)
     (
       cd "$PIGEN_DIR"
-      ./build-docker.sh -c "$CONFIG_OUT"
+      ./build-docker.sh -c "$PIGEN_CONFIG_NAME"
     )
     ;;
   native)
@@ -207,7 +221,7 @@ case "$BUILD_MODE" in
     fi
     (
       cd "$PIGEN_DIR"
-      ./build.sh -c "$CONFIG_OUT"
+      ./build.sh -c "$PIGEN_CONFIG_NAME"
     )
     ;;
   *)
