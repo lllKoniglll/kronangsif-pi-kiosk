@@ -1,0 +1,3 @@
+#!/usr/bin/env sh
+
+"$HOME/.local/bin/kiosk-browser.sh" &
