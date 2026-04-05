@@ -9,9 +9,27 @@ TARGET_URL="$DEFAULT_URL"
 TARGET_HOSTNAME=""
 TARGET_USER="${SUDO_USER:-}"
 SKIP_UPGRADE=0
+WIFI_SSID=""
+WIFI_PASSWORD=""
+WIFI_COUNTRY=""
+
+load_wifi_config() {
+  local wifi_config_path="$1"
+
+  if [[ -f "$wifi_config_path" ]]; then
+    # shellcheck source=/dev/null
+    source "$wifi_config_path"
+  fi
+}
+
+load_wifi_config "$REPO_ROOT/config/wifi.env"
 
 root_free_kb() {
   df -Pk / | awk 'NR == 2 { print $4 }'
+}
+
+escape_sed_replacement() {
+  printf '%s' "$1" | sed -e 's/[&|\\]/\\&/g'
 }
 
 usage() {
@@ -22,6 +40,10 @@ Options:
   --url URL           Kiosk URL to open on boot
   --hostname NAME     Optional Raspberry Pi hostname
   --user NAME         Desktop user that should own the kiosk config
+  --wifi-ssid SSID    Wi-Fi network name for NetworkManager autoconnect
+  --wifi-password PW  Wi-Fi password for the configured network
+  --wifi-country CC   Two-letter wireless country code, for example SE
+  --wifi-config FILE  Load Wi-Fi settings from a shell env file
   --skip-upgrade      Skip apt full-upgrade
   --help              Show this help text
 EOF
@@ -39,6 +61,22 @@ while [[ $# -gt 0 ]]; do
       ;;
     --user)
       TARGET_USER="$2"
+      shift 2
+      ;;
+    --wifi-ssid)
+      WIFI_SSID="$2"
+      shift 2
+      ;;
+    --wifi-password)
+      WIFI_PASSWORD="$2"
+      shift 2
+      ;;
+    --wifi-country)
+      WIFI_COUNTRY="$2"
+      shift 2
+      ;;
+    --wifi-config)
+      load_wifi_config "$2"
       shift 2
       ;;
     --skip-upgrade)
@@ -88,6 +126,17 @@ else
   exit 1
 fi
 
+if [[ -n "$WIFI_SSID" || -n "$WIFI_PASSWORD" || -n "$WIFI_COUNTRY" ]]; then
+  if [[ -z "$WIFI_SSID" || -z "$WIFI_PASSWORD" ]]; then
+    echo "Wi-Fi configuration requires both --wifi-ssid and --wifi-password." >&2
+    exit 1
+  fi
+
+  if [[ -z "$WIFI_COUNTRY" ]]; then
+    WIFI_COUNTRY="SE"
+  fi
+fi
+
 FREE_KB_BEFORE="$(root_free_kb)"
 if [[ "$SKIP_UPGRADE" -eq 0 && "$FREE_KB_BEFORE" -lt 3000000 ]]; then
   echo "Warning: less than 3GB is free on /. A full upgrade may fail on a cramped card." >&2
@@ -124,6 +173,37 @@ if command -v raspi-config >/dev/null 2>&1; then
   fi
 fi
 
+if [[ -n "$WIFI_SSID" ]]; then
+  echo "Configuring Wi-Fi network '$WIFI_SSID'..."
+
+  install -d -m 700 /etc/NetworkManager/system-connections
+
+  WIFI_PROFILE_PATH="/etc/NetworkManager/system-connections/kronangsif-kiosk-wifi.nmconnection"
+  WIFI_UUID="$(cat /proc/sys/kernel/random/uuid)"
+  WIFI_ID_ESCAPED="$(escape_sed_replacement "$WIFI_SSID")"
+  WIFI_SSID_ESCAPED="$(escape_sed_replacement "$WIFI_SSID")"
+  WIFI_PASSWORD_ESCAPED="$(escape_sed_replacement "$WIFI_PASSWORD")"
+  WIFI_UUID_ESCAPED="$(escape_sed_replacement "$WIFI_UUID")"
+
+  sed \
+    -e "s|__WIFI_ID__|$WIFI_ID_ESCAPED|g" \
+    -e "s|__WIFI_UUID__|$WIFI_UUID_ESCAPED|g" \
+    -e "s|__WIFI_SSID__|$WIFI_SSID_ESCAPED|g" \
+    -e "s|__WIFI_PASSWORD__|$WIFI_PASSWORD_ESCAPED|g" \
+    "$REPO_ROOT/config/kiosk-wifi.nmconnection.template" >"$WIFI_PROFILE_PATH"
+
+  chmod 600 "$WIFI_PROFILE_PATH"
+
+  if command -v raspi-config >/dev/null 2>&1; then
+    echo "Setting WLAN country to '$WIFI_COUNTRY'..."
+    raspi-config nonint do_wifi_country "$WIFI_COUNTRY"
+  fi
+
+  if command -v nmcli >/dev/null 2>&1; then
+    nmcli connection reload || true
+  fi
+fi
+
 echo "Writing kiosk files for '$TARGET_USER'..."
 install -d -m 755 -o "$TARGET_USER" -g "$TARGET_USER" \
   "$TARGET_HOME/.config" \
@@ -155,6 +235,10 @@ echo "Browser:   $BROWSER_BIN"
 echo "Free space: $(root_free_kb) KB available on /"
 if [[ -n "$TARGET_HOSTNAME" ]]; then
   echo "Hostname:  $TARGET_HOSTNAME"
+fi
+if [[ -n "$WIFI_SSID" ]]; then
+  echo "Wi-Fi SSID: $WIFI_SSID"
+  echo "Wi-Fi cc:   $WIFI_COUNTRY"
 fi
 echo
 echo "Reboot the Raspberry Pi to launch the kiosk."
