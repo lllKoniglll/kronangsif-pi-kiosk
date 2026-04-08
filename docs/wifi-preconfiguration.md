@@ -9,11 +9,11 @@ The local working copy is configured to use:
 - SSID: `Rolofsberg`
 - Wi-Fi country: `SE`
 
-The password is stored in `config/wifi.env`, which is ignored by Git so it does not get pushed to the public repository.
+The Wi-Fi settings are stored in `config/image-defaults.env`, which is ignored by Git so they do not get pushed to the public repository.
 
 ## How it works
 
-The installer reads `config/wifi.env` if it exists and writes a NetworkManager connection profile to:
+The installer reads `config/image-defaults.env` if it exists and writes a NetworkManager connection profile to:
 
 ```text
 /etc/NetworkManager/system-connections/kronangsif-kiosk-wifi.nmconnection
@@ -23,12 +23,12 @@ That allows Raspberry Pi OS Bookworm/Trixie desktop systems to auto-connect on b
 
 ## Change the network
 
-Edit the local secret file:
+Edit the local image config file:
 
 ```bash
-sed -i '' 's/^WIFI_SSID=.*/WIFI_SSID="NewSSID"/' config/wifi.env
-sed -i '' 's/^WIFI_PASSWORD=.*/WIFI_PASSWORD="NewPassword"/' config/wifi.env
-sed -i '' 's/^WIFI_COUNTRY=.*/WIFI_COUNTRY="SE"/' config/wifi.env
+sed -i '' 's/^WIFI_SSID=.*/WIFI_SSID="NewSSID" # Wi-Fi network name that the kiosk should join on boot./' config/image-defaults.env
+sed -i '' 's/^WIFI_PASSWORD=.*/WIFI_PASSWORD="NewPassword" # Wi-Fi password for the configured network./' config/image-defaults.env
+sed -i '' 's/^WIFI_COUNTRY=.*/WIFI_COUNTRY="SE" # Two-letter regulatory country code for Wi-Fi./' config/image-defaults.env
 ```
 
 Then run the installer again on the Pi.

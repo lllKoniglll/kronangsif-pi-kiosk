@@ -3,22 +3,37 @@ set -euo pipefail
 
 SUB_STAGE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 FIRST_USER_HOME="$ROOTFS_DIR/home/$FIRST_USER_NAME"
+KIOSK_LIB_DIR="$ROOTFS_DIR/usr/local/lib/kronangsif"
 WIFI_PROFILE_PATH="$ROOTFS_DIR/etc/NetworkManager/system-connections/kronangsif-kiosk-wifi.nmconnection"
 
 install -d -m 755 \
   "$FIRST_USER_HOME/.config" \
-  "$FIRST_USER_HOME/.config/labwc" \
-  "$FIRST_USER_HOME/.local" \
-  "$FIRST_USER_HOME/.local/bin" \
-  "$ROOTFS_DIR/etc/NetworkManager/system-connections"
+  "$ROOTFS_DIR/etc/NetworkManager/system-connections" \
+  "$ROOTFS_DIR/etc/systemd/logind.conf.d" \
+  "$ROOTFS_DIR/etc/systemd/sleep.conf.d" \
+  "$KIOSK_LIB_DIR"
 
 install -m 755 \
-  "$SUB_STAGE_DIR/files/kiosk-browser.sh" \
-  "$FIRST_USER_HOME/.local/bin/kiosk-browser.sh"
-
+  "$SUB_STAGE_DIR/files/kiosk-browser-wayland.sh" \
+  "$KIOSK_LIB_DIR/kiosk-browser.sh"
+install -m 755 \
+  "$SUB_STAGE_DIR/files/kiosk-session.sh" \
+  "$KIOSK_LIB_DIR/kiosk-session.sh"
+install -m 755 \
+  "$SUB_STAGE_DIR/files/kiosk-wait-online.sh" \
+  "$KIOSK_LIB_DIR/kiosk-wait-online.sh"
+install -m 755 \
+  "$SUB_STAGE_DIR/files/kiosk-prepare-system.sh" \
+  "$KIOSK_LIB_DIR/kiosk-prepare-system.sh"
 install -m 644 \
-  "$SUB_STAGE_DIR/files/labwc-autostart" \
-  "$FIRST_USER_HOME/.config/labwc/autostart"
+  "$SUB_STAGE_DIR/files/kronangsif-kiosk.service.template" \
+  "$KIOSK_LIB_DIR/kronangsif-kiosk.service.template"
+install -m 644 \
+  "$SUB_STAGE_DIR/files/kronangsif-logind.conf" \
+  "$ROOTFS_DIR/etc/systemd/logind.conf.d/kronangsif.conf"
+install -m 644 \
+  "$SUB_STAGE_DIR/files/kronangsif-sleep.conf" \
+  "$ROOTFS_DIR/etc/systemd/sleep.conf.d/kronangsif.conf"
 
 cat >"$FIRST_USER_HOME/.config/kiosk.env" <<EOF
 KIOSK_URL="${KRONANGSIF_KIOSK_URL:-https://kronangsif.github.io}"

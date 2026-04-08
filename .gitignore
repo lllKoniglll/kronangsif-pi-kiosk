@@ -2,5 +2,7 @@
 *.swp
 *.swo
 .build/
+config/image-defaults.env
+# Legacy local config files kept ignored for compatibility.
 config/wifi.env
 config/image-secrets.env

@@ -12,18 +12,16 @@ This repository can build a Raspberry Pi OS image with the kiosk and Wi-Fi confi
 
 ## Local build files
 
-Two local files are used for secrets:
+The build reads one local image config file:
 
-- `config/image-secrets.env`
-- `config/wifi.env`
+- `config/image-defaults.env`
 
-Both files are ignored by Git.
+That file is ignored by Git.
 
 Start from the examples:
 
 ```bash
-cp config/image-secrets.env.example config/image-secrets.env
-cp config/wifi.env.example config/wifi.env
+cp config/image-defaults.env.example config/image-defaults.env
 ```
 
 Required values:
@@ -31,6 +29,8 @@ Required values:
 - `FIRST_USER_PASS`
 - `WIFI_SSID`
 - `WIFI_PASSWORD`
+
+All image settings such as `FIRST_USER_NAME`, `TARGET_HOSTNAME`, `ENABLE_SSH`, locale, timezone, `KIOSK_URL`, and Wi-Fi should be changed in `config/image-defaults.env`.
 
 ## Build locally
 

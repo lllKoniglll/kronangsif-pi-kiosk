@@ -10,8 +10,7 @@ PIGEN_REPO="${PIGEN_REPO:-https://github.com/RPi-Distro/pi-gen.git}"
 PIGEN_BRANCH="${PIGEN_BRANCH:-arm64}"
 CONFIG_OUT="${CONFIG_OUT:-$BUILD_ROOT/pigen-kronangsif.config}"
 PIGEN_CONFIG_NAME="${PIGEN_CONFIG_NAME:-kronangsif.config}"
-IMAGE_SECRETS_FILE="${IMAGE_SECRETS_FILE:-$REPO_ROOT/config/image-secrets.env}"
-WIFI_CONFIG_FILE="${WIFI_CONFIG_FILE:-$REPO_ROOT/config/wifi.env}"
+IMAGE_DEFAULTS_FILE="${IMAGE_DEFAULTS_FILE:-$REPO_ROOT/config/image-defaults.env}"
 CUSTOM_STAGE_DIR="$REPO_ROOT/pigen/stage-kronangsif"
 CUSTOM_STAGE_NAME="stage-kronangsif"
 
@@ -78,16 +77,29 @@ prepare_pigen_tree() {
 
   install -d "$PIGEN_DIR/$CUSTOM_STAGE_NAME/00-kiosk/files"
   install -m 755 \
-    "$REPO_ROOT/config/kiosk-browser.sh" \
-    "$PIGEN_DIR/$CUSTOM_STAGE_NAME/00-kiosk/files/kiosk-browser.sh"
+    "$REPO_ROOT/config/kiosk-browser-wayland.sh" \
+    "$PIGEN_DIR/$CUSTOM_STAGE_NAME/00-kiosk/files/kiosk-browser-wayland.sh"
   install -m 644 \
-    "$REPO_ROOT/config/labwc-autostart" \
-    "$PIGEN_DIR/$CUSTOM_STAGE_NAME/00-kiosk/files/labwc-autostart"
+    "$REPO_ROOT/config/kronangsif-kiosk.service.template" \
+    "$PIGEN_DIR/$CUSTOM_STAGE_NAME/00-kiosk/files/kronangsif-kiosk.service.template"
+  install -m 644 \
+    "$REPO_ROOT/config/kronangsif-logind.conf" \
+    "$PIGEN_DIR/$CUSTOM_STAGE_NAME/00-kiosk/files/kronangsif-logind.conf"
+  install -m 644 \
+    "$REPO_ROOT/config/kronangsif-sleep.conf" \
+    "$PIGEN_DIR/$CUSTOM_STAGE_NAME/00-kiosk/files/kronangsif-sleep.conf"
+  install -m 755 \
+    "$REPO_ROOT/config/kiosk-session.sh" \
+    "$PIGEN_DIR/$CUSTOM_STAGE_NAME/00-kiosk/files/kiosk-session.sh"
+  install -m 755 \
+    "$REPO_ROOT/config/kiosk-wait-online.sh" \
+    "$PIGEN_DIR/$CUSTOM_STAGE_NAME/00-kiosk/files/kiosk-wait-online.sh"
+  install -m 755 \
+    "$REPO_ROOT/config/kiosk-prepare-system.sh" \
+    "$PIGEN_DIR/$CUSTOM_STAGE_NAME/00-kiosk/files/kiosk-prepare-system.sh"
 
-  rm -f "$PIGEN_DIR"/stage{0,1,2,3,4,5}/SKIP
+  rm -f "$PIGEN_DIR"/stage{0,1,2,3,4,5}/SKIP "$PIGEN_DIR"/stage{0,1,2,3,4,5}/SKIP_IMAGES
   touch "$PIGEN_DIR/stage2/SKIP_IMAGES"
-  touch "$PIGEN_DIR/stage4/SKIP_IMAGES"
-  touch "$PIGEN_DIR/stage5/SKIP_IMAGES"
   cp "$CONFIG_OUT" "$PIGEN_DIR/$PIGEN_CONFIG_NAME"
 }
 
@@ -112,7 +124,7 @@ render_config() {
   write_config_line ENABLE_SSH "${ENABLE_SSH:-1}"
   write_config_line ENABLE_CLOUD_INIT "${ENABLE_CLOUD_INIT:-0}"
   write_config_line WPA_COUNTRY "${WPA_COUNTRY:-${WIFI_COUNTRY:-SE}}"
-  write_config_line STAGE_LIST "stage0 stage1 stage2 stage3 stage4 ${CUSTOM_STAGE_NAME}"
+  write_config_line STAGE_LIST "stage0 stage1 stage2 ${CUSTOM_STAGE_NAME}"
   write_export_line KRONANGSIF_KIOSK_URL "${KIOSK_URL:-https://kronangsif.github.io}"
   write_export_line KRONANGSIF_WIFI_SSID "${WIFI_SSID}"
   write_export_line KRONANGSIF_WIFI_PASSWORD "${WIFI_PASSWORD}"
@@ -128,8 +140,7 @@ Options:
   --prepare-only            Render the pi-gen config but do not clone/build
   --print-config            Print the rendered pi-gen config to stdout
   --refresh-pigen           Refresh the local pi-gen checkout before building
-  --image-secrets FILE      Path to the local image secret file
-  --wifi-config FILE        Path to the local Wi-Fi secret file
+  --image-defaults FILE     Path to the image config env file
   --pigen-dir DIR           Path to the pi-gen checkout
   --pigen-branch BRANCH     pi-gen branch to use, default arm64
   --kiosk-url URL           Page to launch in Chromium
@@ -155,12 +166,8 @@ while [[ $# -gt 0 ]]; do
       REFRESH_PIGEN=1
       shift
       ;;
-    --image-secrets)
-      IMAGE_SECRETS_FILE="$2"
-      shift 2
-      ;;
-    --wifi-config)
-      WIFI_CONFIG_FILE="$2"
+    --image-defaults)
+      IMAGE_DEFAULTS_FILE="$2"
       shift 2
       ;;
     --pigen-dir)
@@ -187,8 +194,7 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
-load_env_file "$IMAGE_SECRETS_FILE"
-load_env_file "$WIFI_CONFIG_FILE"
+load_env_file "$IMAGE_DEFAULTS_FILE"
 
 require_var FIRST_USER_PASS
 require_var WIFI_SSID

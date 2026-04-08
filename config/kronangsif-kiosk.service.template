@@ -1,0 +1,39 @@
+[Unit]
+Description=Kronangsif kiosk browser session
+Wants=network-online.target NetworkManager-wait-online.service
+After=systemd-user-sessions.service systemd-logind.service NetworkManager.service network-online.target plymouth-quit-wait.service
+Conflicts=getty@tty1.service
+
+[Service]
+Type=simple
+User=__FIRST_USER_NAME__
+PAMName=login
+WorkingDirectory=__FIRST_USER_HOME__
+Environment=HOME=__FIRST_USER_HOME__
+Environment=USER=__FIRST_USER_NAME__
+Environment=LOGNAME=__FIRST_USER_NAME__
+Environment=XDG_RUNTIME_DIR=/run/user/__FIRST_USER_UID__
+Environment=LIBSEAT_BACKEND=logind
+PermissionsStartOnly=true
+StandardInput=tty-force
+StandardOutput=journal
+StandardError=journal
+TTYPath=/dev/tty1
+TTYReset=yes
+TTYVHangup=yes
+TTYVTDisallocate=no
+UtmpIdentifier=tty1
+UtmpMode=user
+ExecStartPre=/usr/local/lib/kronangsif/kiosk-wait-online.sh 60
+ExecStartPre=/usr/local/lib/kronangsif/kiosk-prepare-system.sh /dev/tty1
+ExecStart=/usr/local/lib/kronangsif/kiosk-session.sh
+Restart=always
+RestartSec=3
+StartLimitIntervalSec=0
+TimeoutStartSec=120
+TimeoutStopSec=10
+KillMode=mixed
+KillSignal=SIGTERM
+
+[Install]
+WantedBy=multi-user.target

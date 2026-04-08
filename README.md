@@ -56,15 +56,18 @@ After reboot, Chromium should launch automatically in fullscreen and open the ta
 
 This repo can also build a Raspberry Pi OS image with the kiosk and Wi-Fi baked in using official `pi-gen`.
 
-1. Create the local secret files:
+1. Create the local image config file:
 
 ```bash
-cp config/image-secrets.env.example config/image-secrets.env
-cp config/wifi.env.example config/wifi.env
+cp config/image-defaults.env.example config/image-defaults.env
 ```
 
-2. Set the first-user password and Wi-Fi credentials in those files.
-3. Build the image:
+2. Set the required values in `config/image-defaults.env`:
+   - `FIRST_USER_PASS`
+   - `WIFI_SSID`
+   - `WIFI_PASSWORD`
+3. Change any other image settings in the same file, such as hostname, username, locale, timezone, or kiosk URL.
+4. Build the image:
 
 ```bash
 ./scripts/build-pi-image.sh --build-mode docker --refresh-pigen
@@ -82,15 +85,13 @@ For the full flow, see `docs/pi-gen-image-build.md`.
 
 For Raspberry Pi OS Bookworm and newer, Raspberry Pi officially recommends setting first-boot Wi-Fi in Raspberry Pi Imager.
 
-This repo also supports applying Wi-Fi settings through the installer with a local secret file:
+This repo also supports applying Wi-Fi settings through the installer with the local image config file:
 
 ```bash
-cp config/wifi.env.example config/wifi.env
+cp config/image-defaults.env.example config/image-defaults.env
 ```
 
-Then set your Wi-Fi values in `config/wifi.env` and run the installer. The local `config/wifi.env` file is ignored by Git so the password does not get pushed to the public repo.
-
-The current local working copy has been seeded with the `Rolofsberg` network.
+Then set your Wi-Fi values in `config/image-defaults.env` and run the installer. The local `config/image-defaults.env` file is ignored by Git so credentials do not get pushed to the public repo.
 
 ## Change the URL
 
@@ -106,10 +107,9 @@ sudo reboot
 ## Files
 
 - `scripts/install-kiosk.sh`: installs the kiosk dependencies and writes user config
+- `config/image-defaults.env.example`: local image-config template for image settings, password, and Wi-Fi credentials
 - `config/kiosk-browser.sh`: browser launcher used by autostart
 - `config/kiosk-wifi.nmconnection.template`: NetworkManager template for Wi-Fi autoconnect
-- `config/image-secrets.env.example`: local secret template for the baked-in image user
-- `config/wifi.env.example`: local secret template for Wi-Fi credentials
 - `config/labwc-autostart`: autostart file for Raspberry Pi OS desktop mode
 - `docs/raspberry-pi-imager.md`: recommended imaging flow
 - `docs/pi-gen-image-build.md`: official `pi-gen` image build flow
@@ -121,8 +121,7 @@ sudo reboot
 - This repo assumes Raspberry Pi OS with the desktop environment installed.
 - This repo targets a 16GB card, so the desktop image is the right starting point.
 - The install script uses `raspi-config` non-interactive commands for desktop autologin and hostname setup.
-- Wi-Fi credentials should stay in `config/wifi.env`, which is intentionally ignored by Git.
-- Image-user credentials should stay in `config/image-secrets.env`, which is intentionally ignored by Git.
+- All image settings, Wi-Fi credentials, and the baked-in password should stay in `config/image-defaults.env`, which is intentionally ignored by Git.
 - If you want a more durable public kiosk, consider enabling the Raspberry Pi overlay filesystem after setup and testing.
 
 ## References

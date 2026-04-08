@@ -3,9 +3,10 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+IMAGE_CONFIG_FILE="${IMAGE_CONFIG_FILE:-$REPO_ROOT/config/image-defaults.env}"
 
 DEFAULT_URL="https://kronangsif.github.io"
-TARGET_URL="$DEFAULT_URL"
+TARGET_URL=""
 TARGET_HOSTNAME=""
 TARGET_USER="${SUDO_USER:-}"
 SKIP_UPGRADE=0
@@ -13,16 +14,17 @@ WIFI_SSID=""
 WIFI_PASSWORD=""
 WIFI_COUNTRY=""
 
-load_wifi_config() {
-  local wifi_config_path="$1"
+load_config_file() {
+  local config_path="$1"
 
-  if [[ -f "$wifi_config_path" ]]; then
+  if [[ -f "$config_path" ]]; then
     # shellcheck source=/dev/null
-    source "$wifi_config_path"
+    source "$config_path"
   fi
 }
 
-load_wifi_config "$REPO_ROOT/config/wifi.env"
+load_config_file "$IMAGE_CONFIG_FILE"
+TARGET_URL="${TARGET_URL:-${KIOSK_URL:-$DEFAULT_URL}}"
 
 root_free_kb() {
   df -Pk / | awk 'NR == 2 { print $4 }'
@@ -76,7 +78,7 @@ while [[ $# -gt 0 ]]; do
       shift 2
       ;;
     --wifi-config)
-      load_wifi_config "$2"
+      load_config_file "$2"
       shift 2
       ;;
     --skip-upgrade)
