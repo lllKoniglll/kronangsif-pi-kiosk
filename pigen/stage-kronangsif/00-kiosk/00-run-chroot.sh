@@ -7,6 +7,7 @@ apt-get install -y --no-install-recommends \
   dbus-user-session \
   fonts-noto-color-emoji \
   fonts-noto-core \
+  xwayland \
   wtype
 apt-get clean
 

@@ -22,16 +22,20 @@ else
   exit 1
 fi
 
+if [[ -n "${DISPLAY:-}" ]]; then
+  unset WAYLAND_DISPLAY
+  export XDG_SESSION_TYPE=x11
+fi
+
 exec "$BROWSER_BIN" \
   "$URL" \
   --kiosk \
-  --start-fullscreen \
+  --start-maximized \
   --noerrdialogs \
   --disable-infobars \
   --disable-session-crashed-bubble \
   --no-first-run \
   --password-store=basic \
-  --enable-features=UseOzonePlatform \
-  --disable-features=Translate,OverlayScrollbar \
-  --ozone-platform=wayland \
+  --enable-logging=stderr \
+  --disable-features=Translate \
   --overscroll-history-navigation=0
